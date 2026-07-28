@@ -162,18 +162,18 @@ internal sealed class SamplesIndexer(IServiceProvider services, ILogger<SamplesI
         var markdown = Markdig.Markdown.Parse(markdownText);
         foreach (var link in markdown.Descendants<LinkInline>())
         {
-            // MD: https://github.com/DuendeSoftware/samples/tree/main/IdentityServer/v7/AspNetIdentityPasskeys
-            // ZIP: samples-main/IdentityServer/v6/UserInteraction/StepUp/IdentityServerHost/Pages/ExternalLogin/Callback.cshtml.cs
+            // MD: https://github.com/DuendeSoftware/samples/tree/main/IdentityServer/v8/AspNetIdentityPasskeys
+            // ZIP: samples-main/IdentityServer/v8/.../Callback.cshtml.cs
             if (link.Url?.Contains("github.com/duendesoftware/samples/", StringComparison.OrdinalIgnoreCase) == true)
             {
-                var sampleRootIndex = link.Url!.IndexOf("/IdentityServer/v7/", StringComparison.OrdinalIgnoreCase);
+                var sampleRootIndex = link.Url!.IndexOf("/IdentityServer/v8/", StringComparison.OrdinalIgnoreCase);
                 if (sampleRootIndex < 0)
                 {
                     continue;
                 }
 
                 var sampleRootPath = $"samples-main{link.Url![sampleRootIndex..]}";
-                const string sharedHostRootPath = "samples-main/IdentityServer/v7/IdentityServerHost";
+                const string sharedHostRootPath = "samples-main/IdentityServer/v8/IdentityServerHost";
                 var sampleEntries = repositoryArchive.Entries
                     .Where(e =>
 

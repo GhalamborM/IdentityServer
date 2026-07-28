@@ -14,7 +14,7 @@ namespace Documentation.Mcp.Sources.Samples;
 internal sealed class SamplesSearchTool(McpDb db)
 {
     [McpServerTool(Name = "search_duende_samples", Title = "Search Duende Code Samples")]
-    [Description("Search within the Duende code samples for the given query. Use this tool to find recent and relevant C# code samples.")]
+    [Description("Search within the Duende code samples for the given query. Use this tool to find recent and relevant C# code samples for IdentityServer v8.")]
     public async Task<string> Search(
         [Description("The search query. Keep it concise and specific to increase the likelihood of a match.")] string query)
     {

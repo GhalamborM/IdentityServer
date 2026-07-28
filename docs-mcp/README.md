@@ -77,7 +77,7 @@ The Duende Documentation MCP Server will create its database index at the path d
 
 The Duende Documentation MCP Server has several tools available:
 
-* Free text search on blogs, docs, or samples
+* Free text search on blogs, docs, or IdentityServer v8 samples
 * Fetch specific page
 * Get all content for a sample
 * Get a specific file from a sample
@@ -140,8 +140,8 @@ documentation and samples at [docs.duendesoftware.com](https://docs.duendesoftwa
 
 ### Indexers
 
-The project uses full-text search with SQLite. There are indexes for docs, blog, and samples. Indexes are built by
-dedicated background services.
+The project uses full-text search with SQLite. There are indexes for docs, blog, and IdentityServer v8 samples.
+Indexes are built by dedicated background services.
 
 #### Docs
 
