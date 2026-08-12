@@ -20,7 +20,7 @@ jobs:
   close-external:
     # Only run on the public 'products' repo, not 'products-private'
     if: github.repository == 'DuendeSoftware/products'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
       - uses: actions/github-script@v7
         with:

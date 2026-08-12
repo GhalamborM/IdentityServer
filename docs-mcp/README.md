@@ -16,7 +16,7 @@ here are some common configurations.
 ### Visual Studio / Visual Studio Code
 
 You can register the Duende Documentation MCP Server
-[in your user settings](https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_add-an-mcp-server-to-your-user-settings)
+[in your user settings](https://code.visualstudio.com/docs/agent-customization/mcp-servers#_add-an-mcp-server)
 to make it available in any workspace.
 
 Alternatively, you can add a `.vscode/mcp.json` file to your workspace:

@@ -64,4 +64,8 @@ indent_size = 4
 [*.razor]
 indent_size = 4
 
+# Build scripts (file-based programs) don't need ConfigureAwait — there is no SynchronizationContext
+[build.cs]
+dotnet_diagnostic.CA2007.severity = none
+
 
