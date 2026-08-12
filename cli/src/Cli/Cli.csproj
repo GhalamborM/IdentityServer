@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Duende.Cli</AssemblyName>
+    <RootNamespace>Duende.Cli</RootNamespace>
+    <PackageId>Duende.Cli</PackageId>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>duende</ToolCommandName>
+    <RollForward>Major</RollForward>
+    <!-- CLI tools write literal strings to console by design -->
+    <NoWarn>$(NoWarn);CA1303</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Duende.Cli.PluginAbstractions" />
+    <PackageReference Include="NuGet.Packaging" />
+    <PackageReference Include="NuGet.Protocol" />
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Duende.Cli.Tests" />
+    <InternalsVisibleTo Include="Duende.Cli.IntegrationTests" />
+  </ItemGroup>
+
+</Project>

@@ -1,7 +1,6 @@
 // Copyright (c) Duende Software. All rights reserved.
 // See LICENSE in the project root for license information.
 
-
 using System.Globalization;
 using System.Net;
 using System.Text;
@@ -9,9 +8,8 @@ using System.Text.Encodings.Web;
 using Duende.IdentityServer.Configuration;
 using Duende.IdentityServer.Extensions;
 using Duende.IdentityServer.Hosting;
-using Duende.IdentityServer.Internal.Saml;
-using Duende.IdentityServer.Internal.Saml.Infrastructure;
-using Duende.IdentityServer.Models;
+using Duende.IdentityServer.Saml;
+using Duende.IdentityServer.Saml.Bindings;
 using Duende.IdentityServer.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -47,6 +45,14 @@ internal class EndSessionCallbackHttpWriter : IHttpResponseWriter<EndSessionCall
     private readonly IdentityServerOptions _options;
     private readonly ILogger<EndSessionCallbackHttpWriter> _logger;
 
+    /// <summary>
+    /// Script that monitors all iframe load events and sends a postMessage to the
+    /// parent window when all downstream logout iframes have completed loading.
+    /// This enables the SAML SP logout flow to know when downstream notifications
+    /// are done before sending the LogoutResponse to the upstream IdP.
+    /// </summary>
+    internal static readonly string IframeCompletionScript = GetEmbeddedResource($"{typeof(EndSessionCallbackHttpWriter).Namespace}.iframe-completion.js");
+
     public async Task WriteHttpResponse(EndSessionCallbackResult result, HttpContext context)
     {
         if (result.Result.IsError)
@@ -69,31 +75,30 @@ internal class EndSessionCallbackHttpWriter : IHttpResponseWriter<EndSessionCall
         {
             var sb = new StringBuilder();
             var origins = result.Result.FrontChannelLogoutUrls?.Select(x => x.GetOrigin()) ?? [];
-            origins = origins.Concat(result.Result.SamlFrontChannelLogouts.Select(x => x.Destination.OriginalString));
+            origins = origins.Concat(result.Result.SamlFrontChannelLogouts.Select(x => x.Message.Destination.GetOrigin()));
+
+            // When SAML SPs receive a front-channel LogoutRequest in an iframe, they respond
+            // with a redirect back to the IdP's SLO endpoint. Allow 'self' so the browser
+            // permits that redirect within the iframe.
+            if (result.Result.SamlFrontChannelLogouts.Any())
+            {
+                origins = origins.Append("'self'");
+            }
+
             foreach (var origin in origins.Distinct())
             {
-                sb.Append(origin);
                 if (sb.Length > 0)
                 {
                     sb.Append(' ');
                 }
+                sb.Append(origin);
             }
 
-            if (result.Result.SamlFrontChannelLogouts.Any())
-            {
-                // the hash matches the embedded style element being used below
-                // and the SAML auto-post script hash allows the inline script in the iframe srcdoc
-                context.Response.AddStyleAndScriptCspHeaders(
-                    _options.Csp,
-                    IdentityServerConstants.ContentSecurityPolicyHashes.EndSessionStyle,
-                    IdentityServerConstants.ContentSecurityPolicyHashes.SamlAutoPostScript,
-                    sb.ToString());
-            }
-            else
-            {
-                // the hash matches the embedded style element being used below
-                context.Response.AddStyleCspHeaders(_options.Csp, IdentityServerConstants.ContentSecurityPolicyHashes.EndSessionStyle, sb.ToString());
-            }
+            context.Response.AddStyleAndScriptCspHeaders(
+                _options.Csp,
+                IdentityServerConstants.ContentSecurityPolicyHashes.EndSessionStyle,
+                IdentityServerConstants.ContentSecurityPolicyHashes.EndSessionCallbackScript,
+                sb.ToString());
         }
     }
 
@@ -113,26 +118,38 @@ internal class EndSessionCallbackHttpWriter : IHttpResponseWriter<EndSessionCall
 
         if (result.Result.SamlFrontChannelLogouts.Any())
         {
-            foreach (var samlFrontChannelLogout in result.Result.SamlFrontChannelLogouts)
+            foreach (var requestContext in result.Result.SamlFrontChannelLogouts)
             {
-                switch (samlFrontChannelLogout.SamlBinding)
+                var message = requestContext.Message;
+                if (message.Binding != SamlConstants.Bindings.HttpRedirect)
                 {
-                    case SamlBinding.HttpPost:
-                        var autoPostFormContent = HttpResponseBindings.GenerateAutoPostForm(SamlConstants.RequestProperties.SAMLRequest, samlFrontChannelLogout.EncodedContent, samlFrontChannelLogout.Destination, samlFrontChannelLogout.RelayState, includeCsp: true);
-                        sb.Append(CultureInfo.InvariantCulture, $"<iframe sandbox='allow-forms allow-scripts allow-same-origin' srcdoc='{HtmlEncoder.Default.Encode(autoPostFormContent)}'></iframe>");
-                        break;
-                    case SamlBinding.HttpRedirect:
-                        sb.Append(CultureInfo.InvariantCulture, $"<iframe loading='eager' allow='' src='{HtmlEncoder.Default.Encode($"{samlFrontChannelLogout.Destination}?{samlFrontChannelLogout.EncodedContent}")}'></iframe>");
-                        break;
-                    default:
-                        _logger.LogDebug("Unknown SAML Binding: {SamlBinding}", samlFrontChannelLogout.SamlBinding);
-                        break;
+                    _logger.LogDebug("Unsupported SAML Binding: {Binding}", message.Binding);
+                    continue;
                 }
 
+                var queryString = HttpRedirectBinding.GetQueryString(message);
+                var separator = message.Destination.Contains('?', StringComparison.Ordinal) ? "&" : "?";
+                var redirectUrl = $"{message.Destination}{separator}{queryString.TrimStart('?')}";
+                sb.Append(CultureInfo.InvariantCulture, $"<iframe loading='eager' allow='' src='{HtmlEncoder.Default.Encode(redirectUrl)}'></iframe>");
                 sb.AppendLine();
             }
         }
 
+        sb.Append(CultureInfo.InvariantCulture, $"<script>{IframeCompletionScript}</script>");
+
         return sb.ToString();
+    }
+
+    private static string GetEmbeddedResource(string resourceName)
+    {
+        var assembly = typeof(EndSessionCallbackHttpWriter).Assembly;
+        using var stream = assembly.GetManifestResourceStream(resourceName);
+        if (stream == null)
+        {
+            throw new InvalidOperationException($"Embedded resource '{resourceName}' not found.");
+        }
+
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 }

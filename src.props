@@ -32,9 +32,13 @@
     <PackageReference Include="MinVer" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\..\..\tools\PublicApi\PublicApi.csproj')">
+    <InternalsVisibleTo Include="Duende.PublicApi" />
+  </ItemGroup>
+
   <ItemGroup>
-    <None Include="../../../icon.png" Pack="true" Visible="false" PackagePath="" />
-    <None Include="../../../LICENSE" Pack="true" PackagePath="" />
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" Visible="false" PackagePath="" />
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" />
     <None Include="$(PackageReadmePath)" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>

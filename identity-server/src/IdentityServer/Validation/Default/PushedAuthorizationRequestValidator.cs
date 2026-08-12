@@ -47,8 +47,7 @@ internal class PushedAuthorizationRequestValidator(
     public async Task<PushedAuthorizationValidationResult> ValidateAsync(PushedAuthorizationRequestValidationContext context, Ct ct)
     {
         // Licensing
-        licenseUsage.FeatureUsed(LicenseFeature.PAR);
-        IdentityServerLicenseValidator.Instance.ValidatePar();
+        licenseUsage.ParUsed();
 
         // -- Request URI validation --
         var validatedRequest = await ValidateRequestUriAsync(context);

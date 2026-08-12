@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>Duende.Cli.Tests</AssemblyName>
+    <RootNamespace>Duende.Cli.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Cli\Cli.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -16,7 +16,7 @@ here are some common configurations.
 ### Visual Studio / Visual Studio Code
 
 You can register the Duende Documentation MCP Server
-[in your user settings](https://code.visualstudio.com/docs/copilot/chat/mcp-servers#_add-an-mcp-server-to-your-user-settings)
+[in your user settings](https://code.visualstudio.com/docs/agent-customization/mcp-servers#_add-an-mcp-server)
 to make it available in any workspace.
 
 Alternatively, you can add a `.vscode/mcp.json` file to your workspace:
@@ -35,6 +35,13 @@ Alternatively, you can add a `.vscode/mcp.json` file to your workspace:
 ```
 
 The Duende Documentation MCP Server will create its database index at the path defined in the `--database` parameter.
+
+### Command-line Options
+
+| Flag                 | Description                                                   | Default                                  |
+|----------------------|---------------------------------------------------------------|------------------------------------------|
+| `--database <path>`  | Fully qualified path to the SQLite database file              | `mcp.db` (relative to working directory) |
+| `--with-http [port]` | Enable the HTTP transport (Streamable HTTP) on the given port | Disabled; port defaults to `5800`        |
 
 Next, open GitHub Copilot and select Agent Mode to work with the MCP server.
 
@@ -70,7 +77,7 @@ The Duende Documentation MCP Server will create its database index at the path d
 
 The Duende Documentation MCP Server has several tools available:
 
-* Free text search on blogs, docs, or samples
+* Free text search on blogs, docs, or IdentityServer v8 samples
 * Fetch specific page
 * Get all content for a sample
 * Get a specific file from a sample
@@ -118,7 +125,7 @@ documentation and samples at [docs.duendesoftware.com](https://docs.duendesoftwa
 
 ### Development
 
-* Run the project. This will host a server on port 3000 (http), and with stdio bindings.
+* Run the project with `--with-http 3000` to enable the HTTP transport (e.g., on port 3000).
 * In VS Code, add a `.vscode/mcp.json` to your workspace:
   ```json
   {
@@ -133,8 +140,8 @@ documentation and samples at [docs.duendesoftware.com](https://docs.duendesoftwa
 
 ### Indexers
 
-The project uses full-text search with SQLite. There are indexes for docs, blog, and samples. Indexes are built by
-dedicated background services.
+The project uses full-text search with SQLite. There are indexes for docs, blog, and IdentityServer v8 samples.
+Indexes are built by dedicated background services.
 
 #### Docs
 

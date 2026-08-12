@@ -48,7 +48,18 @@ public static class HttpContextExtensions
         return expiredUserSession != null;
     }
 
-    internal static async Task<string> GetIdentityServerSignoutFrameCallbackUrlAsync(this HttpContext context, LogoutMessage logoutMessage = null)
+    /// <summary>
+    /// Builds the signout iframe callback URL that triggers front-channel logout
+    /// notifications to clients and SAML SPs.
+    /// </summary>
+    /// <param name="context">The current HTTP context.</param>
+    /// <param name="logoutMessage">The logout message, if one exists.</param>
+    /// <param name="logoutId">An identifier used to correlate SAML logout session tracking.
+    /// When present and downstream SAML SPs exist, this is stored in
+    /// <see cref="LogoutNotificationContext.SamlLogoutId"/> so that the
+    /// <c>EndSessionRequestValidator</c> can create a <c>SamlLogoutSession</c> to
+    /// track SP logout responses.</param>
+    internal static async Task<string> GetIdentityServerSignoutFrameCallbackUrlAsync(this HttpContext context, LogoutMessage logoutMessage = null, string logoutId = null)
     {
         var userSession = context.RequestServices.GetRequiredService<IUserSession>();
         var user = await userSession.GetUserAsync(context.RequestAborted);
@@ -71,14 +82,16 @@ public static class HttpContextExtensions
             }
 
             var samlEntityIds = samlSessions.Select(s => s.EntityId);
-            if (await AnyClientHasFrontChannelLogout(logoutMessage.ClientIds) || await AnySamlServiceProviderHasFrontChannelLogout(samlEntityIds, context.RequestAborted))
+            if (await AnyClientHasFrontChannelLogout(clientIds) || await AnySamlServiceProviderHasFrontChannelLogout(samlEntityIds, context.RequestAborted))
             {
                 endSessionMsg = new LogoutNotificationContext
                 {
                     SubjectId = logoutMessage.SubjectId,
                     SessionId = logoutMessage.SessionId,
                     ClientIds = clientIds,
-                    SamlSessions = samlSessions
+                    SamlSessions = samlSessions,
+                    SamlInitiatingServiceProviderEntityId = logoutMessage.SamlServiceProviderEntityId,
+                    SamlLogoutId = samlSessions.Count > 0 ? logoutId : null
                 };
             }
         }
@@ -97,7 +110,8 @@ public static class HttpContextExtensions
                     SubjectId = currentSubId,
                     SessionId = await userSession.GetSessionIdAsync(context.RequestAborted),
                     ClientIds = clientIds,
-                    SamlSessions = samlSessions
+                    SamlSessions = samlSessions,
+                    SamlLogoutId = samlSessions.Count > 0 ? logoutId : null
                 };
             }
         }
@@ -141,7 +155,7 @@ public static class HttpContextExtensions
             foreach (var entityId in entityIds)
             {
                 var sp = await serviceProviderStore.FindByEntityIdAsync(entityId, ct);
-                if (sp?.Enabled == true && sp.SingleLogoutServiceUrl != null)
+                if (sp?.Enabled == true && sp.GetSingleLogoutServiceEndpoint(SamlBinding.HttpRedirect) != null)
                 {
                     return true;
                 }

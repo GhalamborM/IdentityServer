@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Solution>
+  <Folder Name="/hosts/">
+    <Project Path="hosts/EavSchema/EavSchema.csproj" />
+    <Project Path="hosts/EntityLinking/EntityLinking.csproj" />
+    <Project Path="hosts/GettingStarted/GettingStarted.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Storage.CliPlugin/Storage.CliPlugin.csproj" />
+    <Project Path="src/Storage.MsSql/Storage.MsSql.csproj" />
+    <Project Path="src/Storage.Oracle/Storage.Oracle.csproj" />
+    <Project Path="src/Storage.PostgreSql/Storage.PostgreSql.csproj" />
+    <Project Path="src/Storage.Sqlite/Storage.Sqlite.csproj" />
+    <Project Path="src/Storage/Storage.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Storage.CliPlugin.Tests/Storage.CliPlugin.Tests.csproj" />
+    <Project Path="test/Storage.MsSql.Tests/Storage.MsSql.Tests.csproj" />
+    <Project Path="test/Storage.Oracle.Tests/Storage.Oracle.Tests.csproj" />
+    <Project Path="test/Storage.PostgreSql.Tests/Storage.PostgreSql.Tests.csproj" />
+    <Project Path="test/Storage.Sqlite.Tests/Storage.Sqlite.Tests.csproj" />
+    <Project Path="test/Storage.Tests/Storage.Tests.csproj" />
+  </Folder>
+  <Folder Name="/testing/">
+    <Project Path="testing/TestAppHost/TestAppHost.csproj" />
+  </Folder>
+</Solution>

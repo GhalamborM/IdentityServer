@@ -27,15 +27,20 @@ public static class Constants
         /// Name of Anti-forgery check metadata
         /// </summary>
         public const string AntiforgeryCheckMetadata = "Duende.Bff.Yarp.AntiforgeryCheck";
+
+        /// <summary>
+        /// Name of the custom access token retriever implementation.
+        /// </summary>
+        public const string AccessTokenRetrieverMetadata = "Duende.Bff.Yarp.AccessTokenRetriever";
     }
 
 #pragma warning disable CA1724 // CA1724: Type names should not match namespaces
     public static class Cookies
 #pragma warning restore CA1724
     {
-        public const string HostPrefix = "__Host";
-        public const string SecurePrefix = "__Secure";
-        public const string DefaultCookieName = HostPrefix + "-bff-auth";
+        public const string HostPrefix = "__Host-";
+        public const string SecurePrefix = "__Secure-";
+        public const string DefaultCookieName = HostPrefix + "bff-auth";
     }
 
     /// <summary>

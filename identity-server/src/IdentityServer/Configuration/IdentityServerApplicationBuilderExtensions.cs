@@ -12,11 +12,12 @@ using Duende.IdentityServer.Configuration;
 using Duende.IdentityServer.Extensions;
 using Duende.IdentityServer.Hosting;
 using Duende.IdentityServer.Hosting.DynamicProviders;
+using Duende.IdentityServer.Licensing;
 using Duende.IdentityServer.Licensing.V2;
+using Duende.IdentityServer.Saml.Endpoints;
 using Duende.IdentityServer.Stores;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Builder;
@@ -27,11 +28,16 @@ namespace Microsoft.AspNetCore.Builder;
 public static class IdentityServerApplicationBuilderExtensions
 {
     /// <summary>
-    /// Adds IdentityServer to the pipeline.
+    /// Adds IdentityServer to the ASP.NET Core request pipeline. This registers the middleware components
+    /// required to handle all IdentityServer protocol endpoints (authorize, token, discovery, userinfo, etc.),
+    /// validates the IdentityServer configuration and license at startup, and sets up CORS, mutual TLS,
+    /// and dynamic external provider authentication.
     /// </summary>
-    /// <param name="app">The application.</param>
-    /// <param name="options">The options.</param>
-    /// <returns></returns>
+    /// <param name="app">The <see cref="IApplicationBuilder"/> to add IdentityServer middleware to.</param>
+    /// <param name="options">Optional <see cref="IdentityServerMiddlewareOptions"/> to customize how the
+    /// ASP.NET Core authentication middleware is inserted into the pipeline. If not provided, the default
+    /// behavior calls <c>UseAuthentication()</c> automatically.</param>
+    /// <returns>The <see cref="IApplicationBuilder"/> so that additional middleware can be chained.</returns>
     public static IApplicationBuilder UseIdentityServer(this IApplicationBuilder app, IdentityServerMiddlewareOptions? options = null)
     {
         app.Validate();
@@ -77,16 +83,36 @@ public static class IdentityServerApplicationBuilderExtensions
             var serviceProvider = scope.ServiceProvider;
 
             var options = serviceProvider.GetRequiredService<IdentityServerOptions>();
-            var env = serviceProvider.GetRequiredService<IHostEnvironment>();
-            IdentityServerLicenseValidator.Instance.Initialize(loggerFactory, options, env.IsDevelopment());
 
-            var licenseExpirationChecker = serviceProvider.GetRequiredService<LicenseExpirationChecker>();
-            licenseExpirationChecker.CheckExpiration();
+            var licenseValidator = serviceProvider.GetRequiredService<IdentityServerLicenseValidator>();
+            licenseValidator.ValidateLicense();
 
             if (options.KeyManagement.Enabled)
             {
                 var licenseUsage = serviceProvider.GetRequiredService<LicenseUsageTracker>();
-                licenseUsage.FeatureUsed(LicenseFeature.KeyManagement);
+                licenseUsage.KeyManagementUsed();
+
+                if (!licenseValidator.ValidateKeyManagement())
+                {
+                    IdentityServerLicenseValidator.ThrowInvalidLicenseException("Your license does not include the Key Management feature.");
+                }
+            }
+
+            if (serviceProvider.GetService<IServerSideSessionsMarker>() != null)
+            {
+                if (!licenseValidator.ValidateServerSideSessions())
+                {
+                    IdentityServerLicenseValidator.ThrowInvalidLicenseException("Your license does not include the Server-Side Sessions feature.");
+                }
+            }
+
+            // Try to get the SAML metadata endpoint. If it exists, then we need to validate the license for SAML.
+            if (serviceProvider.GetService<MetadataEndpoint>() != null)
+            {
+                if (!licenseValidator.ValidateSamlIdp())
+                {
+                    IdentityServerLicenseValidator.ThrowInvalidLicenseException("Your license does not include the SAML 2.0 Identity Provider feature.");
+                }
             }
 
             TestService(serviceProvider, typeof(IPersistedGrantStore), logger, "No storage mechanism for grants specified. Use the 'AddInMemoryPersistedGrants' extension method to register a development version.");

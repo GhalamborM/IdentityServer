@@ -3,6 +3,7 @@
 
 
 using Duende.IdentityServer.Configuration;
+using Duende.IdentityServer.Licensing;
 using Duende.IdentityServer.Licensing.V2;
 using Duende.IdentityServer.Licensing.V2.Diagnostics;
 using Duende.IdentityServer.Logging;
@@ -14,7 +15,6 @@ using Duende.IdentityServer.Stores;
 using Duende.IdentityServer.Stores.Serialization;
 using Duende.IdentityServer.Validation;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using UnitTests.Common;
 
@@ -38,7 +38,8 @@ internal static class Factory
         IEnumerable<IExtensionGrantValidator> extensionGrantValidators = null,
         ICustomTokenRequestValidator customRequestValidator = null,
         IRefreshTokenService refreshTokenService = null,
-        IResourceValidator resourceValidator = null)
+        IResourceValidator resourceValidator = null,
+        IdentityServerLicenseValidator licenseValidator = null)
     {
         if (options == null)
         {
@@ -137,7 +138,8 @@ internal static class Factory
             new DefaultDPoPProofValidator(options, new MockReplayCache(), new FakeTimeProvider(DateTimeOffset.UtcNow), new StubDataProtectionProvider(), new LoggerFactory().CreateLogger<DefaultDPoPProofValidator>()),
             new TestEventService(),
             new FakeTimeProvider(DateTimeOffset.UtcNow),
-            new LicenseUsageTracker(new LicenseAccessor(new IdentityServerOptions(), NullLogger<LicenseAccessor>.Instance), new NullLoggerFactory()),
+            LicenseUsageTracker.CreateForTests(),
+            licenseValidator ?? IdentityServerLicenseValidator.CreateForTests(),
             new ClientLoadedTracker(),
             new ResourceLoadedTracker(),
             new DefaultMtlsEndpointGenerator(serverUrls, Options.Create(options)),
@@ -268,7 +270,7 @@ internal static class Factory
             resourceValidator,
             userSession,
             requestObjectValidator,
-            new LicenseUsageTracker(new LicenseAccessor(new IdentityServerOptions(), NullLogger<LicenseAccessor>.Instance), new NullLoggerFactory()),
+            LicenseUsageTracker.CreateForTests(),
             new ClientLoadedTracker(),
             new ResourceLoadedTracker(),
             new SanitizedLogger<AuthorizeRequestValidator>(TestLogger.Create<AuthorizeRequestValidator>()));
@@ -278,7 +280,8 @@ internal static class Factory
         JwtRequestValidator jwtRequestValidator = null,
         IJwtRequestUriHttpClient jwtRequestUriHttpClient = null,
         IPushedAuthorizationService pushedAuthorizationService = null,
-        IdentityServerOptions options = null)
+        IdentityServerOptions options = null,
+        TimeProvider timeProvider = null)
     {
         jwtRequestValidator ??= new JwtRequestValidator("https://identityserver",
             new LoggerFactory().CreateLogger<JwtRequestValidator>());
@@ -293,7 +296,8 @@ internal static class Factory
             jwtRequestUriHttpClient,
             pushedAuthorizationService,
             options,
-            TestLogger.Create<RequestObjectValidator>());
+            TestLogger.Create<RequestObjectValidator>(),
+            timeProvider ?? new FakeTimeProvider());
     }
 
     public static TokenValidator CreateTokenValidator(

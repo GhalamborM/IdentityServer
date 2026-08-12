@@ -1,8 +1,0 @@
-{
-  "solution": {
-    "path": "..\\products.slnx",
-    "projects": [
-      "docs-mcp\\src\\Documentation.Mcp\\Documentation.Mcp.csproj"
-    ]
-  }
-}

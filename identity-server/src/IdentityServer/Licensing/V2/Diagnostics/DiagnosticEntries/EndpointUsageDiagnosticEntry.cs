@@ -4,7 +4,11 @@
 #nullable enable
 using System.Diagnostics.Metrics;
 using System.Text.Json;
+using Duende.IdentityServer.Configuration;
 using Duende.IdentityServer.Extensions;
+using Duende.IdentityServer.Hosting;
+using Duende.IdentityServer.Saml;
+using Microsoft.Extensions.Options;
 
 namespace Duende.IdentityServer.Licensing.V2.Diagnostics.DiagnosticEntries;
 
@@ -28,15 +32,28 @@ internal class EndpointUsageDiagnosticEntry : IDiagnosticEntry, IDisposable
     private long _samlMetadata;
     private long _samlSignIn;
     private long _samlSignInCallback;
-    private long _samlIdPInitiated;
     private long _samlLogout;
     private long _samlLogoutCallback;
+    private long _samlSpLogoutCompletion;
     private long _other;
 
     private readonly MeterListener _meterListener;
+    private readonly string _samlMetadataPath;
+    private readonly string _samlSignInPath;
+    private readonly string _samlSignInCallbackPath;
+    private readonly string _samlLogoutPath;
+    private readonly string _samlLogoutCallbackPath;
 
-    public EndpointUsageDiagnosticEntry()
+    public EndpointUsageDiagnosticEntry(IOptions<IdentityServerOptions> identityServerOptions)
     {
+        var samlOptions = identityServerOptions.Value.Saml;
+        var samlEndpoints = samlOptions.Endpoints;
+        _samlMetadataPath = EndpointHelpers.SamlMetadataHelpers.ResolveMetadataPath(samlOptions).EnsureLeadingSlash();
+        _samlSignInPath = samlEndpoints.SingleSignOnServicePath.EnsureLeadingSlash();
+        _samlSignInCallbackPath = samlEndpoints.SingleSignOnCallbackPath.EnsureLeadingSlash();
+        _samlLogoutPath = samlEndpoints.SingleLogoutServicePath.EnsureLeadingSlash();
+        _samlLogoutCallbackPath = samlEndpoints.SingleLogoutCallbackPath.EnsureLeadingSlash();
+
         _meterListener = new MeterListener();
 
         _meterListener.InstrumentPublished += (instrument, listener) =>
@@ -71,12 +88,12 @@ internal class EndpointUsageDiagnosticEntry : IDiagnosticEntry, IDisposable
         writer.WriteNumber(IdentityServerConstants.ProtocolRoutePaths.Token.EnsureLeadingSlash(), _token);
         writer.WriteNumber(IdentityServerConstants.ProtocolRoutePaths.UserInfo.EnsureLeadingSlash(), _userInfo);
         writer.WriteNumber(IdentityServerConstants.ProtocolRoutePaths.OAuthMetadata.EnsureLeadingSlash(), _oAuthMetadata);
-        writer.WriteNumber(IdentityServerConstants.ProtocolRoutePaths.SamlMetadata.EnsureLeadingSlash(), _samlMetadata);
-        writer.WriteNumber(IdentityServerConstants.ProtocolRoutePaths.SamlSignin.EnsureLeadingSlash(), _samlSignIn);
-        writer.WriteNumber(IdentityServerConstants.ProtocolRoutePaths.SamlSigninCallback.EnsureLeadingSlash(), _samlSignInCallback);
-        writer.WriteNumber(IdentityServerConstants.ProtocolRoutePaths.SamlIdpInitiated.EnsureLeadingSlash(), _samlIdPInitiated);
-        writer.WriteNumber(IdentityServerConstants.ProtocolRoutePaths.SamlLogout.EnsureLeadingSlash(), _samlLogout);
-        writer.WriteNumber(IdentityServerConstants.ProtocolRoutePaths.SamlLogoutCallback.EnsureLeadingSlash(), _samlLogoutCallback);
+        writer.WriteNumber(_samlMetadataPath, _samlMetadata);
+        writer.WriteNumber(_samlSignInPath, _samlSignIn);
+        writer.WriteNumber(_samlSignInCallbackPath, _samlSignInCallback);
+        writer.WriteNumber(_samlLogoutPath, _samlLogout);
+        writer.WriteNumber(_samlLogoutCallbackPath, _samlLogoutCallback);
+        writer.WriteNumber(SamlConstants.Defaults.SpLogoutCompletionPath.EnsureLeadingSlash(), _samlSpLogoutCompletion);
         writer.WriteNumber("other", _other);
 
         writer.WriteEndObject();
@@ -153,23 +170,23 @@ internal class EndpointUsageDiagnosticEntry : IDiagnosticEntry, IDisposable
             case { } s when s.StartsWith(IdentityServerConstants.ProtocolRoutePaths.OAuthMetadata, StringComparison.OrdinalIgnoreCase):
                 Interlocked.Increment(ref _oAuthMetadata);
                 break;
-            case IdentityServerConstants.ProtocolRoutePaths.SamlMetadata:
-                Interlocked.Increment(ref _samlMetadata);
-                break;
-            case IdentityServerConstants.ProtocolRoutePaths.SamlSignin:
-                Interlocked.Increment(ref _samlSignIn);
-                break;
-            case IdentityServerConstants.ProtocolRoutePaths.SamlSigninCallback:
-                Interlocked.Increment(ref _samlSignInCallback);
-                break;
-            case IdentityServerConstants.ProtocolRoutePaths.SamlIdpInitiated:
-                Interlocked.Increment(ref _samlIdPInitiated);
-                break;
-            case IdentityServerConstants.ProtocolRoutePaths.SamlLogout:
+            case { } s when s.Equals(_samlLogoutPath.TrimStart('/'), StringComparison.OrdinalIgnoreCase):
                 Interlocked.Increment(ref _samlLogout);
                 break;
-            case IdentityServerConstants.ProtocolRoutePaths.SamlLogoutCallback:
+            case { } s when s.Equals(_samlLogoutCallbackPath.TrimStart('/'), StringComparison.OrdinalIgnoreCase):
                 Interlocked.Increment(ref _samlLogoutCallback);
+                break;
+            case { } s when s.Equals(_samlMetadataPath.TrimStart('/'), StringComparison.OrdinalIgnoreCase):
+                Interlocked.Increment(ref _samlMetadata);
+                break;
+            case { } s when s.Equals(_samlSignInPath.TrimStart('/'), StringComparison.OrdinalIgnoreCase):
+                Interlocked.Increment(ref _samlSignIn);
+                break;
+            case { } s when s.Equals(_samlSignInCallbackPath.TrimStart('/'), StringComparison.OrdinalIgnoreCase):
+                Interlocked.Increment(ref _samlSignInCallback);
+                break;
+            case { } s when s.Equals(SamlConstants.Defaults.SpLogoutCompletionPath.TrimStart('/'), StringComparison.OrdinalIgnoreCase):
+                Interlocked.Increment(ref _samlSpLogoutCompletion);
                 break;
             default:
                 Interlocked.Increment(ref _other);
